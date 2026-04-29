@@ -36,7 +36,7 @@ Defaults:
 ```sh
 git clone <repo-url>
 cd codex-usage-limit-notifications
-chmod +x scripts/*.sh scripts/codex-limit-notify.js
+chmod +x scripts/*.sh scripts/codex-limit-notify.js scripts/codex-limit-snooze
 ./scripts/install-launchd.sh
 ```
 
@@ -65,6 +65,29 @@ Settings:
 - `CODEX_BIN`: optional path to Codex if installed somewhere unusual.
 
 The installer prefers the bundled Codex app binary at `/Applications/Codex.app/Contents/Resources/codex`, because that is more reliable under launchd than shell shims installed by version managers.
+
+Optional: install the snooze helper somewhere on your `PATH`:
+
+```sh
+ln -sf "$PWD/scripts/codex-limit-snooze" /usr/local/bin/codex-limit-snooze
+```
+
+Then you can snooze reminders from anywhere:
+
+```sh
+codex-limit-snooze 1h
+codex-limit-snooze 30m
+codex-limit-snooze off
+codex-limit-snooze status
+```
+
+For one-click snooze, create a macOS Shortcut with a "Run Shell Script" action:
+
+```sh
+/usr/local/bin/codex-limit-snooze 1h
+```
+
+You can name it "Snooze Codex Alerts 1h" and run it from Spotlight, Shortcuts, Siri, Raycast, Alfred, or a keyboard shortcut.
 
 Check installed settings:
 
@@ -103,6 +126,14 @@ node scripts/codex-limit-notify.js --test-notification
 ```
 
 This does not read the current Codex balance and does not test the threshold logic.
+
+Snooze notifications:
+
+```sh
+node scripts/codex-limit-notify.js --snooze 1h
+node scripts/codex-limit-notify.js --status
+node scripts/codex-limit-notify.js --unsnooze
+```
 
 Test the real threshold path with a temporary low threshold:
 

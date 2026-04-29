@@ -18,6 +18,9 @@ const statePath =
   path.join(os.homedir(), ".codex-usage-limit-notifications", "state.json");
 const dryRun = process.argv.includes("--dry-run");
 const testNotify = process.argv.includes("--test-notification");
+const snoozeIndex = process.argv.indexOf("--snooze");
+const unsnooze = process.argv.includes("--unsnooze");
+const status = process.argv.includes("--status");
 
 function readState() {
   try {
@@ -30,6 +33,38 @@ function readState() {
 function writeState(state) {
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+function parseDurationMs(value) {
+  const match = /^(\d+)(m|h|d)?$/.exec(String(value || "").trim());
+  if (!match) {
+    throw new Error("Duration must look like 30m, 1h, 2h, or 1d");
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2] || "m";
+  const multipliers = {
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  return amount * multipliers[unit];
+}
+
+function formatLocalTime(isoString) {
+  if (!isoString) return "not snoozed";
+  const date = new Date(isoString);
+  if (!Number.isFinite(date.getTime())) return "not snoozed";
+  return date.toLocaleString();
+}
+
+function activeSnooze(state) {
+  const snoozedUntil = Date.parse(state.snoozedUntil || "");
+  if (!Number.isFinite(snoozedUntil) || Date.now() >= snoozedUntil) {
+    return null;
+  }
+  return new Date(snoozedUntil);
 }
 
 function runJsonRpc() {
@@ -156,6 +191,26 @@ function windowsFromSnapshot(snapshot) {
 }
 
 async function main() {
+  if (snoozeIndex !== -1) {
+    const duration = process.argv[snoozeIndex + 1];
+    const snoozedUntil = new Date(Date.now() + parseDurationMs(duration)).toISOString();
+    const state = readState();
+    state.alerted ||= {};
+    state.snoozedUntil = snoozedUntil;
+    writeState(state);
+    log(`Snoozed notifications until ${formatLocalTime(snoozedUntil)}.`);
+    return;
+  }
+
+  if (unsnooze) {
+    const state = readState();
+    state.alerted ||= {};
+    delete state.snoozedUntil;
+    writeState(state);
+    log("Snooze cleared.");
+    return;
+  }
+
   if (testNotify) {
     await notify(
       "Codex usage notifier test",
@@ -178,6 +233,17 @@ async function main() {
 
   log(windows.map(describeWindow).join(" | "));
 
+  const snoozedUntil = activeSnooze(state);
+  if (status) {
+    log(`Threshold: ${thresholdUsed}% used. Repeat: ${repeatMinutes} min. Snooze: ${snoozedUntil ? `until ${formatLocalTime(snoozedUntil.toISOString())}` : "off"}.`);
+    return;
+  }
+
+  if (snoozedUntil) {
+    log(`Notifications snoozed until ${formatLocalTime(snoozedUntil.toISOString())}.`);
+    return;
+  }
+
   const warnings = [];
   for (const window of windows) {
     if (window.usedPercent < thresholdUsed) continue;
@@ -197,10 +263,12 @@ async function main() {
   }
 
   if (warnings.length > 0) {
+    log(`Dispatching notification: ${warnings.join("; ")}. Threshold: ${thresholdUsed}% used.`);
     await notify(
       "Codex usage limit warning",
       `${warnings.join("; ")}. Threshold: ${thresholdUsed}% used.`,
     );
+    log("Notification dispatch completed.");
   }
 
   writeState(state);

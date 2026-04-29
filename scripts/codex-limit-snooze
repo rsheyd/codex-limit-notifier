@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  SOURCE_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+  TARGET="$(readlink "$SOURCE")"
+  if [[ "$TARGET" == /* ]]; then
+    SOURCE="$TARGET"
+  else
+    SOURCE="$SOURCE_DIR/$TARGET"
+  fi
+done
+SCRIPT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+NODE_BIN="${NODE_BIN:-$(command -v node)}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  codex-limit-snooze 30m
+  codex-limit-snooze 1h
+  codex-limit-snooze off
+  codex-limit-snooze status
+USAGE
+}
+
+if [[ $# -ne 1 ]]; then
+  usage >&2
+  exit 2
+fi
+
+case "$1" in
+  off|clear|unsnooze)
+    exec "$NODE_BIN" "$SCRIPT_DIR/codex-limit-notify.js" --unsnooze
+    ;;
+  status)
+    exec "$NODE_BIN" "$SCRIPT_DIR/codex-limit-notify.js" --status
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    exec "$NODE_BIN" "$SCRIPT_DIR/codex-limit-notify.js" --snooze "$1"
+    ;;
+esac
