@@ -7,7 +7,7 @@ const readline = require("readline");
 const { spawn } = require("child_process");
 
 const thresholdUsed = Number(process.env.CODEX_LIMIT_NOTIFY_THRESHOLD_USED || 50);
-const repeatMinutes = Number(process.env.CODEX_LIMIT_NOTIFY_REPEAT_MINUTES || 60);
+const repeatMinutes = Number(process.env.CODEX_LIMIT_NOTIFY_REPEAT_MINUTES || 10);
 const notificationSound = process.env.CODEX_LIMIT_NOTIFY_SOUND || "Glass";
 const bundledCodexBin = "/Applications/Codex.app/Contents/Resources/codex";
 const codexBin =

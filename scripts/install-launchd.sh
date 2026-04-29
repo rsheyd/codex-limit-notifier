@@ -7,7 +7,7 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 NODE_BIN="$(command -v node)"
 BUNDLED_CODEX_BIN="/Applications/Codex.app/Contents/Resources/codex"
 CODEX_BIN="${CODEX_BIN:-}"
-CHECK_INTERVAL_SECONDS="${CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS:-900}"
+CHECK_INTERVAL_SECONDS="${CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS:-300}"
 LAUNCHD_PATH="$(dirname "$NODE_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 LOG_PATH="$HOME/Library/Logs/codex-limit-notifier.log"
 
@@ -62,7 +62,7 @@ cat > "$PLIST" <<PLIST
     <key>CODEX_LIMIT_NOTIFY_THRESHOLD_USED</key>
     <string>${CODEX_LIMIT_NOTIFY_THRESHOLD_USED:-50}</string>
     <key>CODEX_LIMIT_NOTIFY_REPEAT_MINUTES</key>
-    <string>${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-60}</string>
+    <string>${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-10}</string>
     <key>CODEX_LIMIT_NOTIFY_SOUND</key>
     <string>${CODEX_LIMIT_NOTIFY_SOUND:-Glass}</string>
     <key>CODEX_BIN</key>
@@ -80,7 +80,7 @@ launchctl load "$PLIST"
   printf '[%s] Settings: threshold_used=%s repeat_minutes=%s check_interval_seconds=%s sound=%s codex_bin=%s node_bin=%s\n' \
     "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
     "${CODEX_LIMIT_NOTIFY_THRESHOLD_USED:-50}" \
-    "${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-60}" \
+    "${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-10}" \
     "$CHECK_INTERVAL_SECONDS" \
     "${CODEX_LIMIT_NOTIFY_SOUND:-Glass}" \
     "$CODEX_BIN" \

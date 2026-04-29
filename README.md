@@ -26,16 +26,16 @@ Requirements:
 
 Defaults:
 
-- Checks every 15 minutes.
+- Checks every 5 minutes.
 - Warns when either limit reaches `50%` used, which is the same as `50%` remaining.
-- Repeats the warning every 60 minutes while a limit remains over threshold.
+- Repeats the warning every 10 minutes while a limit remains over threshold.
 - Uses a macOS desktop notification with the `Glass` sound.
 
 ## Install and Configure
 
 ```sh
-git clone <repo-url>
-cd codex-usage-limit-notifications
+git clone https://github.com/rsheyd/codex-limit-notifier.git
+cd codex-limit-notifier
 chmod +x scripts/*.sh scripts/codex-limit-notify.js scripts/codex-limit-snooze
 ./scripts/install-launchd.sh
 ```
@@ -49,8 +49,8 @@ This installs and loads:
 Rerun the installer with any settings you want to change. Each install rewrites and reloads the LaunchAgent.
 
 ```sh
-CODEX_LIMIT_NOTIFY_THRESHOLD_USED=60 \
-CODEX_LIMIT_NOTIFY_REPEAT_MINUTES=30 \
+CODEX_LIMIT_NOTIFY_THRESHOLD_USED=50 \
+CODEX_LIMIT_NOTIFY_REPEAT_MINUTES=10 \
 CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS=300 \
 CODEX_LIMIT_NOTIFY_SOUND=Glass \
 ./scripts/install-launchd.sh
@@ -97,11 +97,11 @@ plutil -p ~/Library/LaunchAgents/local.codex-limit-notifier.plist
 
 Look under `EnvironmentVariables` for the notification settings. Look at `StartInterval` for the check interval.
 
-Check interval and repeat interval are intentionally separate. You can check every 5 minutes but only repeat notifications every 30 minutes:
+Check interval and repeat interval are intentionally separate. You can check every 5 minutes but only repeat notifications every 10 minutes:
 
 ```sh
 CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS=300 \
-CODEX_LIMIT_NOTIFY_REPEAT_MINUTES=30 \
+CODEX_LIMIT_NOTIFY_REPEAT_MINUTES=10 \
 ./scripts/install-launchd.sh
 ```
 
