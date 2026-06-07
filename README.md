@@ -27,7 +27,8 @@ Requirements:
 Defaults:
 
 - Checks every 5 minutes.
-- Warns when either limit reaches `50%` used, which is the same as `50%` remaining.
+- Warns when the 5-hour limit reaches `60%` used, which is the same as `40%` remaining.
+- Warns when the weekly limit reaches `80%` used, which is the same as `20%` remaining.
 - Repeats the warning every 10 minutes while a limit remains over threshold.
 - Uses a macOS desktop notification with the `Glass` sound.
 
@@ -49,7 +50,9 @@ This installs and loads:
 Rerun the installer with any settings you want to change. Each install rewrites and reloads the LaunchAgent.
 
 ```sh
-CODEX_LIMIT_NOTIFY_THRESHOLD_USED=50 \
+CODEX_LIMIT_NOTIFY_THRESHOLD_USED=60 \
+CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED=60 \
+CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED=80 \
 CODEX_LIMIT_NOTIFY_REPEAT_MINUTES=10 \
 CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS=300 \
 CODEX_LIMIT_NOTIFY_SOUND=Glass \
@@ -58,7 +61,9 @@ CODEX_LIMIT_NOTIFY_SOUND=Glass \
 
 Settings:
 
-- `CODEX_LIMIT_NOTIFY_THRESHOLD_USED`: alert threshold as percent used. Example: `75` means warn at `25%` remaining.
+- `CODEX_LIMIT_NOTIFY_THRESHOLD_USED`: default alert threshold as percent used for windows without a more specific setting. It also remains the fallback for the 5-hour threshold. Example: `75` means warn at `25%` remaining.
+- `CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED`: 5-hour alert threshold as percent used. Defaults to `60`.
+- `CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED`: weekly alert threshold as percent used. Defaults to `80`.
 - `CODEX_LIMIT_NOTIFY_REPEAT_MINUTES`: how often to notify again while still over threshold. Use `0` to disable repeats.
 - `CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS`: how often launchd runs the monitor. Minimum is `60`.
 - `CODEX_LIMIT_NOTIFY_SOUND`: macOS notification sound name.
@@ -66,10 +71,11 @@ Settings:
 
 The installer prefers the bundled Codex app binary at `/Applications/Codex.app/Contents/Resources/codex`, because that is more reliable under launchd than shell shims installed by version managers.
 
-Optional: install the snooze helper somewhere on your `PATH`:
+Optional: install the helper commands somewhere on your `PATH`:
 
 ```sh
 ln -sf "$PWD/scripts/codex-limit-snooze" /usr/local/bin/codex-limit-snooze
+ln -sf "$PWD/scripts/codex-limit-weekly-threshold" /usr/local/bin/codex-limit-weekly-threshold
 ```
 
 Then you can snooze reminders from anywhere:
@@ -80,6 +86,16 @@ codex-limit-snooze 30m
 codex-limit-snooze off
 codex-limit-snooze status
 ```
+
+Adjust the weekly threshold without reinstalling the LaunchAgent:
+
+```sh
+codex-limit-weekly-threshold 85
+codex-limit-weekly-threshold status
+codex-limit-weekly-threshold reset
+```
+
+This writes an override to the notifier state file. `reset` clears the override and returns to `CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED`, or the built-in `80%` default.
 
 For one-click snooze, create a macOS Shortcut with a "Run Shell Script" action:
 
@@ -139,6 +155,7 @@ Test the real threshold path with a temporary low threshold:
 
 ```sh
 CODEX_LIMIT_NOTIFY_THRESHOLD_USED=1 \
+CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED=1 \
 CODEX_LIMIT_NOTIFY_STATE=/tmp/codex-limit-notifier-test-state.json \
 node scripts/codex-limit-notify.js
 rm -f /tmp/codex-limit-notifier-test-state.json

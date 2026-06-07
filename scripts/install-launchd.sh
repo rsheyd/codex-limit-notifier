@@ -8,6 +8,9 @@ NODE_BIN="$(command -v node)"
 BUNDLED_CODEX_BIN="/Applications/Codex.app/Contents/Resources/codex"
 CODEX_BIN="${CODEX_BIN:-}"
 CHECK_INTERVAL_SECONDS="${CODEX_LIMIT_NOTIFY_CHECK_INTERVAL_SECONDS:-300}"
+DEFAULT_THRESHOLD_USED="${CODEX_LIMIT_NOTIFY_THRESHOLD_USED:-60}"
+FIVE_HOUR_THRESHOLD_USED="${CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED:-$DEFAULT_THRESHOLD_USED}"
+WEEKLY_THRESHOLD_USED="${CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED:-80}"
 LAUNCHD_PATH="$(dirname "$NODE_BIN"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 LOG_PATH="$HOME/Library/Logs/codex-limit-notifier.log"
 
@@ -60,7 +63,11 @@ cat > "$PLIST" <<PLIST
     <key>PATH</key>
     <string>$LAUNCHD_PATH</string>
     <key>CODEX_LIMIT_NOTIFY_THRESHOLD_USED</key>
-    <string>${CODEX_LIMIT_NOTIFY_THRESHOLD_USED:-50}</string>
+    <string>$DEFAULT_THRESHOLD_USED</string>
+    <key>CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED</key>
+    <string>$FIVE_HOUR_THRESHOLD_USED</string>
+    <key>CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED</key>
+    <string>$WEEKLY_THRESHOLD_USED</string>
     <key>CODEX_LIMIT_NOTIFY_REPEAT_MINUTES</key>
     <string>${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-10}</string>
     <key>CODEX_LIMIT_NOTIFY_SOUND</key>
@@ -77,9 +84,11 @@ launchctl load "$PLIST"
 
 {
   printf '[%s] Installed %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$LABEL"
-  printf '[%s] Settings: threshold_used=%s repeat_minutes=%s check_interval_seconds=%s sound=%s codex_bin=%s node_bin=%s\n' \
+  printf '[%s] Settings: threshold_used=%s threshold_5h=%s threshold_weekly=%s repeat_minutes=%s check_interval_seconds=%s sound=%s codex_bin=%s node_bin=%s\n' \
     "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
-    "${CODEX_LIMIT_NOTIFY_THRESHOLD_USED:-50}" \
+    "$DEFAULT_THRESHOLD_USED" \
+    "$FIVE_HOUR_THRESHOLD_USED" \
+    "$WEEKLY_THRESHOLD_USED" \
     "${CODEX_LIMIT_NOTIFY_REPEAT_MINUTES:-10}" \
     "$CHECK_INTERVAL_SECONDS" \
     "${CODEX_LIMIT_NOTIFY_SOUND:-Glass}" \

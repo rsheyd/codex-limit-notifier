@@ -6,7 +6,13 @@ const path = require("path");
 const readline = require("readline");
 const { spawn } = require("child_process");
 
-const thresholdUsed = Number(process.env.CODEX_LIMIT_NOTIFY_THRESHOLD_USED || 50);
+const defaultThresholdUsed = Number(process.env.CODEX_LIMIT_NOTIFY_THRESHOLD_USED || 60);
+const fiveHourThresholdUsed = Number(
+  process.env.CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED || defaultThresholdUsed,
+);
+const weeklyThresholdUsed = Number(
+  process.env.CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED || 80,
+);
 const repeatMinutes = Number(process.env.CODEX_LIMIT_NOTIFY_REPEAT_MINUTES || 10);
 const notificationSound = process.env.CODEX_LIMIT_NOTIFY_SOUND || "Glass";
 const bundledCodexBin = "/Applications/Codex.app/Contents/Resources/codex";
@@ -19,6 +25,8 @@ const statePath =
 const dryRun = process.argv.includes("--dry-run");
 const testNotify = process.argv.includes("--test-notification");
 const snoozeIndex = process.argv.indexOf("--snooze");
+const setWeeklyThresholdIndex = process.argv.indexOf("--set-weekly-threshold");
+const clearWeeklyThreshold = process.argv.includes("--clear-weekly-threshold");
 const unsnooze = process.argv.includes("--unsnooze");
 const status = process.argv.includes("--status");
 
@@ -65,6 +73,12 @@ function activeSnooze(state) {
     return null;
   }
   return new Date(snoozedUntil);
+}
+
+function validatePercent(name, value) {
+  if (!Number.isFinite(value) || value < 0 || value > 100) {
+    throw new Error(`${name} must be a number from 0 to 100`);
+  }
 }
 
 function runJsonRpc() {
@@ -152,6 +166,23 @@ function describeWindow(window) {
   return `${windowLabel(window)}: ${remaining}% remaining (${used}% used)`;
 }
 
+function thresholdForWindow(window, state) {
+  if (window.windowDurationMins === 300) return fiveHourThresholdUsed;
+  if (window.windowDurationMins === 10080) {
+    return Number.isFinite(state.weeklyThresholdUsed)
+      ? state.weeklyThresholdUsed
+      : weeklyThresholdUsed;
+  }
+  return defaultThresholdUsed;
+}
+
+function describeThresholds(state) {
+  const weeklyOverride = Number.isFinite(state.weeklyThresholdUsed)
+    ? `, Weekly override: ${state.weeklyThresholdUsed}% used`
+    : "";
+  return `5h threshold: ${fiveHourThresholdUsed}% used. Weekly threshold: ${thresholdForWindow({ windowDurationMins: 10080 }, state)}% used${weeklyOverride}.`;
+}
+
 function log(message) {
   console.log(`[${new Date().toISOString()}] ${message}`);
 }
@@ -211,6 +242,26 @@ async function main() {
     return;
   }
 
+  if (setWeeklyThresholdIndex !== -1) {
+    const weeklyThreshold = Number(process.argv[setWeeklyThresholdIndex + 1]);
+    validatePercent("Weekly threshold", weeklyThreshold);
+    const state = readState();
+    state.alerted ||= {};
+    state.weeklyThresholdUsed = weeklyThreshold;
+    writeState(state);
+    log(`Weekly threshold set to ${weeklyThreshold}% used.`);
+    return;
+  }
+
+  if (clearWeeklyThreshold) {
+    const state = readState();
+    state.alerted ||= {};
+    delete state.weeklyThresholdUsed;
+    writeState(state);
+    log(`Weekly threshold reset to configured default: ${weeklyThresholdUsed}% used.`);
+    return;
+  }
+
   if (testNotify) {
     await notify(
       "Codex usage notifier test",
@@ -219,9 +270,9 @@ async function main() {
     return;
   }
 
-  if (!Number.isFinite(thresholdUsed) || thresholdUsed < 0 || thresholdUsed > 100) {
-    throw new Error("CODEX_LIMIT_NOTIFY_THRESHOLD_USED must be a number from 0 to 100");
-  }
+  validatePercent("CODEX_LIMIT_NOTIFY_THRESHOLD_USED", defaultThresholdUsed);
+  validatePercent("CODEX_LIMIT_NOTIFY_5H_THRESHOLD_USED", fiveHourThresholdUsed);
+  validatePercent("CODEX_LIMIT_NOTIFY_WEEKLY_THRESHOLD_USED", weeklyThresholdUsed);
   if (!Number.isFinite(repeatMinutes) || repeatMinutes < 0) {
     throw new Error("CODEX_LIMIT_NOTIFY_REPEAT_MINUTES must be 0 or a positive number");
   }
@@ -235,7 +286,7 @@ async function main() {
 
   const snoozedUntil = activeSnooze(state);
   if (status) {
-    log(`Threshold: ${thresholdUsed}% used. Repeat: ${repeatMinutes} min. Snooze: ${snoozedUntil ? `until ${formatLocalTime(snoozedUntil.toISOString())}` : "off"}.`);
+    log(`${describeThresholds(state)} Repeat: ${repeatMinutes} min. Snooze: ${snoozedUntil ? `until ${formatLocalTime(snoozedUntil.toISOString())}` : "off"}.`);
     return;
   }
 
@@ -246,6 +297,7 @@ async function main() {
 
   const warnings = [];
   for (const window of windows) {
+    const thresholdUsed = thresholdForWindow(window, state);
     if (window.usedPercent < thresholdUsed) continue;
 
     const key = `${windowLabel(window)}:${thresholdUsed}:${window.resetsAt || "unknown"}`;
@@ -259,14 +311,14 @@ async function main() {
     }
 
     state.alerted[key] = new Date().toISOString();
-    warnings.push(describeWindow(window));
+    warnings.push(`${describeWindow(window)}. Threshold: ${thresholdUsed}% used`);
   }
 
   if (warnings.length > 0) {
-    log(`Dispatching notification: ${warnings.join("; ")}. Threshold: ${thresholdUsed}% used.`);
+    log(`Dispatching notification: ${warnings.join("; ")}.`);
     await notify(
       "Codex usage limit warning",
-      `${warnings.join("; ")}. Threshold: ${thresholdUsed}% used.`,
+      warnings.join("; "),
     );
     log("Notification dispatch completed.");
   }
