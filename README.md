@@ -71,12 +71,16 @@ Settings:
 
 The installer prefers the bundled Codex app binary at `/Applications/Codex.app/Contents/Resources/codex`, because that is more reliable under launchd than shell shims installed by version managers.
 
-Optional: install the helper commands somewhere on your `PATH`:
+Optional: install the helper commands somewhere on your `PATH`.
+This example uses `~/.local/bin`, which avoids `sudo` and is usually safer than `/usr/local/bin`:
 
 ```sh
-ln -sf "$PWD/scripts/codex-limit-snooze" /usr/local/bin/codex-limit-snooze
-ln -sf "$PWD/scripts/codex-limit-weekly-threshold" /usr/local/bin/codex-limit-weekly-threshold
+mkdir -p "$HOME/.local/bin"
+ln -sf "$PWD/scripts/codex-limit-snooze" "$HOME/.local/bin/codex-limit-snooze"
+ln -sf "$PWD/scripts/codex-limit-weekly-threshold" "$HOME/.local/bin/codex-limit-weekly-threshold"
 ```
+
+Run these commands from the repository root so `$PWD/scripts/...` points at this checkout.
 
 Then you can snooze reminders from anywhere:
 
@@ -100,7 +104,7 @@ This writes an override to the notifier state file. `reset` clears the override 
 For one-click snooze, create a macOS Shortcut with a "Run Shell Script" action:
 
 ```sh
-/usr/local/bin/codex-limit-snooze 1h
+$HOME/.local/bin/codex-limit-snooze 1h
 ```
 
 You can name it "Snooze Codex Alerts 1h" and run it from Spotlight, Shortcuts, Siri, Raycast, Alfred, or a keyboard shortcut.
