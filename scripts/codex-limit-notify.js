@@ -316,9 +316,13 @@ async function main() {
 
   if (warnings.length > 0) {
     log(`Dispatching notification: ${warnings.join("; ")}.`);
+    const body = `${warnings.join("; ")}
+
+Snooze: codex-limit-snooze 1h
+Disable: launchctl unload ~/Library/LaunchAgents/local.codex-limit-notifier.plist`;
     await notify(
       "Codex usage limit warning",
-      warnings.join("; "),
+      body,
     );
     log("Notification dispatch completed.");
   }
