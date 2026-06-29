@@ -1,5 +1,7 @@
 # Codex Usage Limit Notifications
 
+**Deprecated**: Both the codex desktop app and the CodexBar now have built-in notifications. This app still works at the moment (6/29/2026) but is no longer necessary and will not be maintained going forward.
+
 macOS desktop notifications for Codex subscription rate limits.
 
 This monitor reads the same Codex app-server rate-limit snapshot used by the Codex app and warns when either the 5-hour or weekly Codex usage window crosses a configured threshold.
