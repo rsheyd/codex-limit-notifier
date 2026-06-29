@@ -1,4 +1,4 @@
-**Deprecated as of 6/29/2026**: Both the codex desktop app and the CodexBar now have built-in notifications. This app still works at the moment but is no longer necessary and will not be maintained going forward.
+**Deprecated as of 6/29/2026**: Both the codex desktop app and CodexBar now have built-in notifications. This app still works at the moment but is no longer necessary and will not be maintained going forward.
 
 # Codex Usage Limit Notifications (Deprecated)
 
